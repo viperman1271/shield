@@ -9,6 +9,12 @@
 
 namespace shield
 {
+namespace detail
+{
+    class circuit_breaker;
+    class circuit_breaker_manager;
+}
+
 class circuit_breaker final
 {
 public:
@@ -35,7 +41,7 @@ public:
 
     circuit_breaker(const std::string& name, int failureThreshold = 5, std::chrono::seconds timeout = std::chrono::seconds(60));
     circuit_breaker(const config& cfg);
-    ~circuit_breaker() = default;
+    ~circuit_breaker();
 
 //     template<typename Func>
 //     auto execute(Func&& func)
@@ -67,32 +73,28 @@ public:
 //         }
 //     }
 
-    state get_state() const { return state; }
-    int get_failure_count() const { return failureCount; }
+    state get_state() const;
+    int get_failure_count() const;
 
 //private:
     void on_success();
     void on_failure();
     void on_execute_function();
 
-    int failureThreshold;
-    const std::string name;
-    std::chrono::seconds timeout;
-    std::atomic<int> failureCount;
-    std::atomic<state> state;
-    std::chrono::steady_clock::time_point lastFailureTime;
-    std::mutex mutex;
+    std::unique_ptr<detail::circuit_breaker> pImpl;
 };
 
-class circuit_breaker_manager
+class circuit_breaker_manager final
 {
 public:
+    circuit_breaker_manager();
+    ~circuit_breaker_manager() = default;
+
     std::shared_ptr<circuit_breaker> create(const circuit_breaker::config& cfg);
     std::shared_ptr<circuit_breaker> get(const std::string& name);
 
 private:
-    std::recursive_mutex mutex;
-    std::unordered_map<std::string, std::shared_ptr<circuit_breaker>> circuitBreakers;
+    std::unique_ptr<detail::circuit_breaker_manager> pImpl;
 };
 
 class circuit
@@ -104,7 +106,7 @@ public:
     template<class Func, class _Ty, class _Texcept = std::exception>
     void run(Func&& func, retry_policy retry = default_retry_policy, timeout_policy timeout = default_timeout_policy, fallback_policy fallback = default_fallback_policy) const
     {
-        circuitBreaker->on_execute_function();
+        on_execute_function();
 
         using Ret = std::invoke_result_t<Func>;
         if constexpr (std::is_void_v<Ret> || !std::is_convertible_v<Ret, bool>)
@@ -112,11 +114,11 @@ public:
             try
             {
                 func();
-                circuitBreaker->on_success();
+                on_success();
             }
             catch (const _Texcept& ex)
             {
-                circuitBreaker->on_failure();
+                on_failure();
             }
         }
         else
@@ -126,19 +128,24 @@ public:
                 Ret result = func();
                 if (result)
                 {
-                    circuitBreaker->on_success();
+                    on_success();
                 }
                 else
                 {
-                    circuitBreaker->on_failure();
+                    on_failure();
                 }
             }
             catch (const _Texcept& ex)
             {
-                circuitBreaker->on_failure();
+                on_failure();
             }
         }
     }
+
+private:
+    void on_success();
+    void on_failure();
+    void on_execute_function();
 
 private:
     std::shared_ptr<circuit_breaker> circuitBreaker;
