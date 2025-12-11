@@ -29,10 +29,13 @@ MinSizeRel/
 # Visual Studio
 # =====================
 .vs/
+*.vcxproj
+*.vcxproj.filters
 *.vcxproj.user
 *.suo
 *.user
 *.userosscache
+*.sln
 *.sln.docstates
 *.ncb
 *.opensdf
