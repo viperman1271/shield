@@ -52,6 +52,23 @@ namespace detail
             }
         }
 
+        void on_execute_function()
+        {
+            if (state == shield::circuit_breaker::state::open)
+            {
+                auto now = std::chrono::steady_clock::now();
+                if (now - lastFailureTime > timeout)
+                {
+                    std::cout << "Circuit transitioning to HALF_OPEN\n";
+                    state = shield::circuit_breaker::state::half_open;
+                }
+                else
+                {
+                    throw std::runtime_error("Circuit breaker is OPEN");
+                }
+            }
+        }
+
     private:
         int failureThreshold;
         const std::string name;
@@ -95,6 +112,11 @@ void circuit_breaker::on_success()
 void circuit_breaker::on_failure()
 {
     pImpl->on_failure();
+}
+
+void circuit_breaker::on_execute_function()
+{
+    pImpl->on_execute_function();
 }
 
 } // shield
