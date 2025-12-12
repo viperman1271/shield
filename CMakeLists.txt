@@ -36,6 +36,8 @@ source_group("circuit" FILES
     src/circuit/circuit.cpp
     src/circuit/circuitbreaker.cpp
     src/circuit/circuitbreakermanager.cpp
+    src/detail/circuit/circuitbreakermanager.cpp
+    src/detail/circuit/circuitbreakermanager.hpp
 )
 
 # Library target
@@ -48,7 +50,8 @@ add_library(shield STATIC
     include/shield/timeout.hpp
     src/circuit/circuit.cpp
     src/circuit/circuitbreaker.cpp
-    src/circuit/circuitbreakermanager.cpp
+    src/detail/circuit/circuitbreakermanager.cpp
+    src/detail/circuit/circuitbreakermanager.hpp
     src/resilience_patterns.cpp
 )
 
