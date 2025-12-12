@@ -1,6 +1,10 @@
 #pragma once
 
-#include <shield/all.hpp>
+//#include <shield/all.hpp>
+
+#include <shield/fallback.hpp>
+#include <shield/retry.hpp>
+#include <shield/timeout.hpp>
 
 #include <chrono>
 #include <iostream>
@@ -39,39 +43,15 @@ public:
         half_open
     };
 
+    template<typename Rep, typename Period>
+    circuit_breaker(const std::string& name, int failureThreshold = 5, std::chrono::duration<Rep, Period> duration = std::chrono::seconds(60))
+        : circuit_breaker(name, failureThreshold, std::chrono::duration_cast<std::chrono::seconds>(duration))
+    {
+    }
+
     circuit_breaker(const std::string& name, int failureThreshold = 5, std::chrono::seconds timeout = std::chrono::seconds(60));
     circuit_breaker(const config& cfg);
     ~circuit_breaker();
-
-//     template<typename Func>
-//     auto execute(Func&& func)
-//     {
-//         if (state == state::open)
-//         {
-//             auto now = std::chrono::steady_clock::now();
-//             if (now - lastFailureTime > timeout)
-//             {
-//                 std::cout << "Circuit transitioning to HALF_OPEN\n";
-//                 state = state::half_open;
-//             }
-//             else
-//             {
-//                 throw std::runtime_error("Circuit breaker is OPEN");
-//             }
-//         }
-// 
-//         try
-//         {
-//             auto result = func();
-//             on_success();
-//             return result;
-//         }
-//         catch (...)
-//         {
-//             on_failure();
-//             throw;
-//         }
-//     }
 
     state get_state() const;
     int get_failure_count() const;

@@ -1,10 +1,9 @@
 cmake_minimum_required(VERSION 3.20)
-project(shield VERSION 1.0.0 LANGUAGES CXX)
+project(shield)
 
 # Set C++ standard
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS OFF)
 
 # Export compile commands for IDE support
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -22,37 +21,45 @@ source_group("include\\shield" FILES
     include/shield/all.hpp
     include/shield/bulkhead.hpp
     include/shield/circuitbreaker.hpp
+    include/shield/fallback.hpp
     include/shield/retry.hpp
-    include/shield/timeoutexecutor.hpp
+    include/shield/timeout.hpp
 )
 
 source_group("" FILES
     src/resilience_patterns.cpp
 )
 
+source_group("circuit" FILES
+    src/circuit/circuit.cpp
+    src/circuit/circuitbreaker.cpp
+    src/circuit/circuitbreakermanager.cpp
+)
+
 # Library target
-add_library(shield INTERFACE
+add_library(shield STATIC
     include/shield/all.hpp
     include/shield/bulkhead.hpp
     include/shield/circuitbreaker.hpp
+    include/shield/fallback.hpp
     include/shield/retry.hpp
-    include/shield/timeoutexecutor.hpp
+    include/shield/timeout.hpp
+    src/circuit/circuit.cpp
+    src/circuit/circuitbreaker.cpp
+    src/circuit/circuitbreakermanager.cpp
     src/resilience_patterns.cpp
 )
 
-target_include_directories(shield INTERFACE
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-    $<INSTALL_INTERFACE:include>
+target_include_directories(shield PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 
-target_link_libraries(shield INTERFACE
+target_link_libraries(shield PUBLIC
     Boost::boost
     Boost::system
     Folly::folly
     prometheus-cpp::core
 )
-
-target_compile_features(shield INTERFACE cxx_std_17)
 
 # Example executable
 add_executable(shield_example
@@ -78,13 +85,9 @@ target_link_libraries(shield_tests PRIVATE
     Catch2::Catch2WithMain
 )
 
-# Enable testing
-enable_testing()
-add_test(NAME shield_tests COMMAND shield_tests)
-
-# Compiler warnings
 if(MSVC)
-    target_compile_options(shield INTERFACE /W4)
+    target_compile_definitions(shield PUBLIC _WIN32_WINNT=0x0601)
+    target_compile_options(shield PUBLIC /W4 /utf-8)
 else()
-    target_compile_options(shield INTERFACE -Wall -Wextra -Wpedantic)
+    target_compile_options(shield PRIVATE -Wall -Wextra -Wpedantic)
 endif()
