@@ -86,10 +86,9 @@ TEST_CASE("Circuit breaker - half-open closes on success", "[circuit_breaker]")
     // Wait and try again (transitions to half-open then closed)
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
     
-    REQUIRE(cb.get_state() == shield::circuit_breaker::state::half_open);
-
     cb.on_execute_function();
-    cb.on_success();
+    REQUIRE(cb.get_state() == shield::circuit_breaker::state::half_open);
+    cb.on_success(); // Succeed again in half-open state
     
     REQUIRE(cb.get_state() == shield::circuit_breaker::state::closed);
 }
@@ -108,10 +107,9 @@ TEST_CASE("Circuit breaker - half-open reopens on failure", "[circuit_breaker]")
     // Wait for half-open transition
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
     
+    cb.on_execute_function();
     REQUIRE(cb.get_state() == shield::circuit_breaker::state::half_open);
-
-    // Fail again in half-open state
-    cb.on_failure();
+    cb.on_failure(); // Fail again in half-open state
     
     REQUIRE(cb.get_state() == shield::circuit_breaker::state::open);
 }
