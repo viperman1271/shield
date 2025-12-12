@@ -5,7 +5,7 @@
 
 #include <chrono>
 
-TEST_CASE("Circuit breaker - initial state is closed", "[circuit_breaker]")
+TEST_CASE("Circuit - initial state is closed", "[circuit_breaker]")
 {
     shield::circuit_breaker cb("test", 3, std::chrono::seconds(1));
     
@@ -13,7 +13,7 @@ TEST_CASE("Circuit breaker - initial state is closed", "[circuit_breaker]")
     REQUIRE(cb.get_failure_count() == 0);
 }
 
-TEST_CASE("Circuit breaker - successful execution", "[circuit_breaker]")
+TEST_CASE("Circuit - successful execution", "[circuit_breaker]")
 {
     shield::circuit_breaker cb("test", 3, std::chrono::seconds(1));
     
@@ -27,7 +27,7 @@ TEST_CASE("Circuit breaker - successful execution", "[circuit_breaker]")
 //     REQUIRE(cb.get_failure_count() == 0);
 }
 
-TEST_CASE("Circuit breaker - opens after threshold failures", "[circuit_breaker]")
+TEST_CASE("Circuit - opens after threshold failures", "[circuit_breaker]")
 {
     shield::circuit_breaker cb("test", 3, std::chrono::seconds(10));
     
@@ -52,7 +52,7 @@ TEST_CASE("Circuit breaker - opens after threshold failures", "[circuit_breaker]
 //     REQUIRE(cb.get_failure_count() == 3);
 }
 
-TEST_CASE("Circuit breaker - rejects calls when open", "[circuit_breaker]")
+TEST_CASE("Circuit - rejects calls when open", "[circuit_breaker]")
 {
     shield::circuit_breaker cb("test", 2, std::chrono::seconds(10));
     
@@ -75,11 +75,11 @@ TEST_CASE("Circuit breaker - rejects calls when open", "[circuit_breaker]")
 //     // Should reject immediately
 //     REQUIRE_THROWS_WITH(
 //         cb.execute([]() { return 42; }),
-//         "Circuit breaker is OPEN"
+//         "Circuit is OPEN"
 //     );
 }
 
-TEST_CASE("Circuit breaker - transitions to half-open after timeout", "[circuit_breaker]")
+TEST_CASE("Circuit - transitions to half-open after timeout", "[circuit_breaker]")
 {
     shield::circuit_breaker cb("test", 2, std::chrono::milliseconds(100));
     
@@ -110,7 +110,7 @@ TEST_CASE("Circuit breaker - transitions to half-open after timeout", "[circuit_
 //     REQUIRE(cb.get_failure_count() == 0);
 }
 
-TEST_CASE("Circuit breaker - half-open closes on success", "[circuit_breaker]")
+TEST_CASE("Circuit - half-open closes on success", "[circuit_breaker]")
 {
     shield::circuit_breaker cb("test", 2, std::chrono::milliseconds(50));
     
@@ -137,7 +137,7 @@ TEST_CASE("Circuit breaker - half-open closes on success", "[circuit_breaker]")
 //     REQUIRE(cb.get_state() == circuit_breaker::state::closed);
 }
 
-TEST_CASE("Circuit breaker - half-open reopens on failure", "[circuit_breaker]")
+TEST_CASE("Circuit - half-open reopens on failure", "[circuit_breaker]")
 {
     shield::circuit_breaker cb("test", 2, std::chrono::milliseconds(50));
     
@@ -172,7 +172,7 @@ TEST_CASE("Circuit breaker - half-open reopens on failure", "[circuit_breaker]")
 //     REQUIRE(cb.get_state() == shield::circuit_breaker::state::open);
 }
 
-TEST_CASE("Circuit breaker - success resets failure count", "[circuit_breaker]")
+TEST_CASE("Circuit - success resets failure count", "[circuit_breaker]")
 {
     shield::circuit_breaker cb("test", 5, std::chrono::seconds(1));
     
@@ -200,7 +200,7 @@ TEST_CASE("Circuit breaker - success resets failure count", "[circuit_breaker]")
 //     REQUIRE(cb.get_state() == circuit_breaker::state::closed);
 }
 
-TEST_CASE("Circuit breaker - custom failure threshold", "[circuit_breaker]")
+TEST_CASE("Circuit - custom failure threshold", "[circuit_breaker]")
 {
     shield::circuit_breaker cb("test", 10, std::chrono::seconds(1));
     
