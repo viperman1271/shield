@@ -404,7 +404,7 @@ TEST_CASE_METHOD(circuit_test_fixture, "Circuit with retry policy - basic integr
         .with_retry_policy(policy)
         .run<std::runtime_error>([&call_count]()
         {
-            call_count++;
+            ++call_count;
             if (call_count < 2)
             {
                 throw std::runtime_error("Temporary failure");
@@ -429,7 +429,7 @@ TEST_CASE_METHOD(circuit_test_fixture, "Circuit with retry policy - exhausts ret
         .with_retry_policy(policy)
         .run<std::runtime_error>([&call_count]()
         {
-            call_count++;
+            ++call_count;
             throw std::runtime_error("Always fails");
             return std::string("never");
         }),
@@ -454,7 +454,7 @@ TEST_CASE_METHOD(circuit_test_fixture, "Circuit with retry policy - exponential 
             .with_retry_policy(policy)
             .run<std::runtime_error>([&call_count]()
             {
-                call_count++;
+                ++call_count;
                 throw std::runtime_error("Fail");
                 return 0;
             });
@@ -486,7 +486,7 @@ TEST_CASE_METHOD(circuit_test_fixture, "Circuit with retry policy - specific exc
         .with_retry_policy(policy)
         .run<std::runtime_error>([&runtime_count]()
         {
-            runtime_count++;
+            ++runtime_count;
             if (runtime_count < 2)
             {
                 throw std::runtime_error("Retry this");
@@ -505,7 +505,7 @@ TEST_CASE_METHOD(circuit_test_fixture, "Circuit with retry policy - specific exc
         .with_retry_policy(policy)
         .run<std::logic_error>([&logic_count]()
         {
-            logic_count++;
+            ++logic_count;
             throw std::logic_error("Don't retry this");
             return std::string("never");
         }),
@@ -523,7 +523,7 @@ TEST_CASE_METHOD(circuit_test_fixture, "Circuit with retry policy - custom predi
         .with_max_attempts(4)
         .retry_if([&predicate_calls](const std::exception& e, int attempt)
         {
-            predicate_calls++;
+            ++predicate_calls;
             // Only retry on odd attempts
             return attempt % 2 == 1;
         })
@@ -535,7 +535,7 @@ TEST_CASE_METHOD(circuit_test_fixture, "Circuit with retry policy - custom predi
         .with_retry_policy(policy)
         .run<std::runtime_error>([&call_count]()
         {
-            call_count++;
+            ++call_count;
             if (call_count < 3)
             {
                 throw std::runtime_error("Maybe retry");
@@ -557,7 +557,7 @@ TEST_CASE_METHOD(circuit_test_fixture, "Circuit with retry policy - callback inv
         .with_fixed_backoff(std::chrono::milliseconds(5))
         .on_retry([&](const std::exception& e, int attempt, std::chrono::milliseconds delay)
         {
-            callback_count++;
+            ++callback_count;
             retry_attempts.push_back(attempt);
         });
 
@@ -569,7 +569,7 @@ TEST_CASE_METHOD(circuit_test_fixture, "Circuit with retry policy - callback inv
             .with_retry_policy(policy)
             .run<std::runtime_error>([&call_count]()
             {
-                call_count++;
+                ++call_count;
                 throw std::runtime_error("Always fails");
                 return 0;
             });
@@ -597,7 +597,7 @@ TEST_CASE_METHOD(circuit_test_fixture, "Circuit with retry policy - void return 
         .with_retry_policy(policy)
         .run<std::runtime_error>([&]()
         {
-            call_count++;
+            ++call_count;
             if (call_count < 2)
             {
                 throw std::runtime_error("Fail once");
@@ -621,7 +621,7 @@ TEST_CASE_METHOD(circuit_test_fixture, "Circuit with retry policy - int return t
         .with_retry_policy(policy)
         .run<std::runtime_error>([&call_count]()
         {
-            call_count++;
+            ++call_count;
             if (call_count < 2)
             {
                 throw std::runtime_error("Fail once");
@@ -645,7 +645,7 @@ TEST_CASE_METHOD(circuit_test_fixture, "Circuit with retry policy - builder patt
         )
         .run<std::runtime_error>([&call_count]()
         {
-            call_count++;
+            ++call_count;
             if (call_count < 2)
             {
                 throw std::runtime_error("Try again");
@@ -710,7 +710,7 @@ TEST_CASE_METHOD(circuit_test_fixture, "Circuit with retry policy - jittered bac
             .with_retry_policy(policy)
             .run<std::runtime_error>([&call_count]()
             {
-                call_count++;
+                ++call_count;
                 throw std::runtime_error("Fail");
                 return 0;
             });
@@ -741,7 +741,7 @@ TEST_CASE_METHOD(circuit_test_fixture, "Circuit with retry policy - multiple cir
         .with_retry_policy(fast_policy)
         .run<std::runtime_error>([&fast_count]()
         {
-            fast_count++;
+            ++fast_count;
             if (fast_count < 2)
             {
                 throw std::runtime_error("Retry");
@@ -753,7 +753,7 @@ TEST_CASE_METHOD(circuit_test_fixture, "Circuit with retry policy - multiple cir
         .with_retry_policy(slow_policy)
         .run<std::runtime_error>([&slow_count]()
         {
-            slow_count++;
+            ++slow_count;
             if (slow_count < 3)
             {
                 throw std::runtime_error("Retry");
@@ -777,7 +777,7 @@ TEST_CASE_METHOD(circuit_test_fixture, "Circuit with retry policy - convenience 
         .with_retry_policy(policy)
         .run<std::runtime_error>([&call_count]()
         {
-            call_count++;
+            ++call_count;
             if (call_count < 2)
             {
                 throw std::runtime_error("Fail");
@@ -830,7 +830,7 @@ TEST_CASE_METHOD(circuit_test_fixture, "Circuit without retry policy - normal op
     const std::string result = shield::circuit("no-retry")
         .run<std::runtime_error>([&call_count]()
         {
-            call_count++;
+            ++call_count;
             return std::string("no-retry-needed");
         });
 
@@ -847,7 +847,7 @@ TEST_CASE_METHOD(circuit_test_fixture, "Circuit without retry policy - fails imm
         shield::circuit("fail-fast")
         .run<std::runtime_error>([&call_count]()
         {
-            call_count++;
+            ++call_count;
             throw std::runtime_error("Immediate failure");
             return std::string("never");
         }),
