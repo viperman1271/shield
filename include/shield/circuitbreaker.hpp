@@ -54,7 +54,7 @@ public:
     
     ~circuit_breaker();
 
-    void init(std::function<void(const std::string&, std::function<void()>, std::function<void()>, std::function<void()>)> callback);
+    void init(std::function<void(const std::string&, std::function<void()>, std::function<void()>, std::function<bool()>)> callback);
 
     state get_state() const;
     int get_failure_count() const;

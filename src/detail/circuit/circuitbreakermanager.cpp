@@ -22,7 +22,7 @@ namespace impl
 
             std::function<void()> successFunc;
             std::function<void()> failureFunc;
-            std::function<void()> executeFunc;
+            std::function<bool()> executeFunc;
         };
 
     public:
@@ -91,15 +91,17 @@ namespace impl
             }
         }
 
-        void on_execute_function(std::shared_ptr<shield::circuit_breaker> cb) const
+        bool on_execute_function(std::shared_ptr<shield::circuit_breaker> cb) const
         {
             std::lock_guard<std::recursive_mutex> lock(mutex);
 
             const auto iter = circuitBreakers.find(cb->get_name());
             if (iter != circuitBreakers.end())
             {
-                iter->second.executeFunc();
+                return iter->second.executeFunc();
             }
+
+            return false;
         }
 
         void register_circuit_breaker(std::shared_ptr<shield::circuit_breaker> cb)
@@ -120,7 +122,7 @@ namespace impl
         }
 
     private:
-        void register_instance(const std::string& name, std::function<void()> successFunc, std::function<void()> failureFunc, std::function<void()> executeFunc)
+        void register_instance(const std::string& name, std::function<void()> successFunc, std::function<void()> failureFunc, std::function<bool()> executeFunc)
         {
             std::lock_guard<std::recursive_mutex> lock(mutex);
 
@@ -174,9 +176,9 @@ void circuit_breaker_manager::on_failure(std::shared_ptr<shield::circuit_breaker
     pImpl->on_failure(cb);
 }
 
-void circuit_breaker_manager::on_execute_function(std::shared_ptr<shield::circuit_breaker> cb) const
+bool circuit_breaker_manager::on_execute_function(std::shared_ptr<shield::circuit_breaker> cb) const
 {
-    pImpl->on_execute_function(cb);
+    return pImpl->on_execute_function(cb);
 }
 
 void circuit_breaker_manager::register_circuit_breaker(std::shared_ptr<shield::circuit_breaker> cb)

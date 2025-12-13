@@ -75,7 +75,7 @@ namespace detail
             return state != shield::circuit_breaker::state::open;
         }
 
-        void init(std::function<void(const std::string&, std::function<void()>, std::function<void()>, std::function<void()>)> callback)
+        void init(std::function<void(const std::string&, std::function<void()>, std::function<void()>, std::function<bool()>)> callback)
         {
             callback(name, std::bind(&circuit_breaker::on_success, this), std::bind(&circuit_breaker::on_failure, this), std::bind(&circuit_breaker::on_execute_function, this));
         }
@@ -119,7 +119,7 @@ circuit_breaker::~circuit_breaker()
 {
 }
 
-void circuit_breaker::init(std::function<void(const std::string&, std::function<void()>, std::function<void()>, std::function<void()>)> callback)
+void circuit_breaker::init(std::function<void(const std::string&, std::function<void()>, std::function<void()>, std::function<bool()>)> callback)
 {
     pImpl->init(callback);
 }

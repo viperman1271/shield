@@ -24,9 +24,9 @@ void circuit::on_failure() const
     detail::circuit_breaker_manager::get_instance().on_failure(circuitBreaker);
 }
 
-void circuit::on_execute_function() const
+bool circuit::on_execute_function() const
 {
-    detail::circuit_breaker_manager::get_instance().on_execute_function(circuitBreaker);
+    return detail::circuit_breaker_manager::get_instance().on_execute_function(circuitBreaker);
 }
 
 void circuit::handle_function_exit(bool success) const
@@ -40,5 +40,4 @@ void circuit::handle_function_exit(bool success) const
         on_failure();
     }
 }
-
-}
+} // shield

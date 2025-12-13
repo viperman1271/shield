@@ -88,7 +88,7 @@ public:
 private:
     void on_success() const;
     void on_failure() const;
-    void on_execute_function() const;
+    bool on_execute_function() const;
     void handle_function_exit(bool success) const;
 
 private:

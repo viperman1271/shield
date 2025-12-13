@@ -26,7 +26,7 @@ public:
 
     void on_success(std::shared_ptr<shield::circuit_breaker> cb) const;
     void on_failure(std::shared_ptr<shield::circuit_breaker> cb) const;
-    void on_execute_function(std::shared_ptr<shield::circuit_breaker> cb) const;
+    bool on_execute_function(std::shared_ptr<shield::circuit_breaker> cb) const;
 
     void register_circuit_breaker(std::shared_ptr<shield::circuit_breaker> circuitBreaker);
 
