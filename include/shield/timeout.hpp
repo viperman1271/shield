@@ -93,5 +93,5 @@ struct timeout_policy final
     std::chrono::seconds timeout;
 };
 
-static const timeout_policy default_timeout_policy();
+static const timeout_policy default_timeout_policy = timeout_policy(std::chrono::seconds(1));
 } // shield

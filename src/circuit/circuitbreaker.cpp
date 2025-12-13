@@ -1,5 +1,7 @@
 #include <shield/circuitbreaker.hpp>
 
+#include <detail/circuit/circuitbreakermanager.hpp>
+
 namespace shield
 {
 namespace detail
@@ -7,7 +9,7 @@ namespace detail
     class circuit_breaker final
     {
     public:
-        circuit_breaker(const std::string& name, int failureThreshold, std::chrono::seconds timeout)
+        circuit_breaker(const std::string& name, int failureThreshold, std::chrono::milliseconds timeout)
             : failureThreshold(failureThreshold)
             , timeout(timeout)
             , name(name)
@@ -27,6 +29,7 @@ namespace detail
 
         shield::circuit_breaker::state get_state() const { return state; }
         int get_failure_count() const { return failureCount; }
+        const std::string& get_name() const { return name; }
 
         void on_success()
         {
@@ -52,7 +55,7 @@ namespace detail
             }
         }
 
-        void on_execute_function()
+        bool on_execute_function()
         {
             if (state == shield::circuit_breaker::state::open)
             {
@@ -64,15 +67,23 @@ namespace detail
                 }
                 else
                 {
-                    throw std::runtime_error("Circuit breaker is OPEN");
+                    //throw std::runtime_error("Circuit breaker is OPEN");
+                    return false;
                 }
             }
+
+            return state != shield::circuit_breaker::state::open;
+        }
+
+        void init(std::function<void(const std::string&, std::function<void()>, std::function<void()>, std::function<void()>)> callback)
+        {
+            callback(name, std::bind(&circuit_breaker::on_success, this), std::bind(&circuit_breaker::on_failure, this), std::bind(&circuit_breaker::on_execute_function, this));
         }
 
     private:
         int failureThreshold;
         const std::string name;
-        std::chrono::seconds timeout;
+        std::chrono::milliseconds timeout;
         std::atomic<int> failureCount;
         std::atomic<shield::circuit_breaker::state> state;
         std::chrono::steady_clock::time_point lastFailureTime;
@@ -80,7 +91,21 @@ namespace detail
     };
 } // detail
 
-circuit_breaker::circuit_breaker(const std::string& name, int failureThreshold, std::chrono::seconds timeout)
+std::shared_ptr<shield::circuit_breaker> circuit_breaker::create(const std::string& name, int failureThreshold, std::chrono::milliseconds timeout)
+{
+    std::shared_ptr<shield::circuit_breaker> newInstance(new shield::circuit_breaker(name, failureThreshold, timeout));
+    detail::circuit_breaker_manager::get_instance().register_circuit_breaker(newInstance);
+    return newInstance;
+}
+
+std::shared_ptr<shield::circuit_breaker> circuit_breaker::create(const config& cfg)
+{
+    std::shared_ptr<shield::circuit_breaker> newInstance(new shield::circuit_breaker(cfg));
+    detail::circuit_breaker_manager::get_instance().register_circuit_breaker(newInstance);
+    return newInstance;
+}
+
+circuit_breaker::circuit_breaker(const std::string& name, int failureThreshold, std::chrono::milliseconds timeout)
     : pImpl(std::make_unique<shield::detail::circuit_breaker>(name, failureThreshold, timeout))
 {
 }
@@ -94,6 +119,11 @@ circuit_breaker::~circuit_breaker()
 {
 }
 
+void circuit_breaker::init(std::function<void(const std::string&, std::function<void()>, std::function<void()>, std::function<void()>)> callback)
+{
+    pImpl->init(callback);
+}
+
 shield::circuit_breaker::state circuit_breaker::get_state() const
 {
     return pImpl->get_state();
@@ -102,6 +132,11 @@ shield::circuit_breaker::state circuit_breaker::get_state() const
 int circuit_breaker::get_failure_count() const
 {
     return pImpl->get_failure_count();
+}
+
+const std::string& circuit_breaker::get_name() const
+{
+    return pImpl->get_name();
 }
 
 void circuit_breaker::on_success()
@@ -114,9 +149,9 @@ void circuit_breaker::on_failure()
     pImpl->on_failure();
 }
 
-void circuit_breaker::on_execute_function()
+bool circuit_breaker::on_execute_function()
 {
-    pImpl->on_execute_function();
+    return pImpl->on_execute_function();
 }
 
 } // shield

@@ -24,7 +24,9 @@ set_target_properties(Folly::folly PROPERTIES
 source_group("include\\shield" FILES
     include/shield/all.hpp
     include/shield/bulkhead.hpp
+    include/shield/circuit.hpp
     include/shield/circuitbreaker.hpp
+    include/shield/exceptions.hpp
     include/shield/fallback.hpp
     include/shield/retry.hpp
     include/shield/timeout.hpp
@@ -38,6 +40,9 @@ source_group("circuit" FILES
     src/circuit/circuit.cpp
     src/circuit/circuitbreaker.cpp
     src/circuit/circuitbreakermanager.cpp
+)
+
+source_group("defailt\\circuit" FILES
     src/detail/circuit/circuitbreakermanager.cpp
     src/detail/circuit/circuitbreakermanager.hpp
 )
@@ -46,7 +51,9 @@ source_group("circuit" FILES
 add_library(shield STATIC
     include/shield/all.hpp
     include/shield/bulkhead.hpp
+    include/shield/circuit.hpp
     include/shield/circuitbreaker.hpp
+    include/shield/exceptions.hpp
     include/shield/fallback.hpp
     include/shield/retry.hpp
     include/shield/timeout.hpp
@@ -60,6 +67,10 @@ add_library(shield STATIC
 target_include_directories(shield PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/include
     ${ITLIB_INCLUDE_DIRS}
+)
+
+target_include_directories(shield PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 
 target_link_libraries(shield PUBLIC
@@ -87,6 +98,10 @@ add_executable(shield_tests
     src/unittests/test_bulkhead.cpp
     src/unittests/test_fallback.cpp
     src/unittests/test_integration.cpp
+)
+
+target_include_directories(shield_tests PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 
 target_link_libraries(shield_tests PRIVATE
