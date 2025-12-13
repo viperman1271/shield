@@ -14,6 +14,8 @@ find_package(folly CONFIG REQUIRED)
 find_package(prometheus-cpp CONFIG REQUIRED)
 find_package(Catch2 CONFIG REQUIRED)
 
+find_path(ITLIB_INCLUDE_DIRS "itlib/any.hpp")
+
 # Need to override some of the Folly properties - specifically the C++17 command line
 set_target_properties(Folly::folly PROPERTIES
   INTERFACE_COMPILE_OPTIONS "/EHs;/GF;/Zc:referenceBinding;/Zc:rvalueCast;/Zc:implicitNoexcept;/Zc:strictStrings;/Zc:threadSafeInit;/Zc:throwingNew;/permissive-;/std:c++20;/utf-8;/wd4191;/wd4291;/wd4309;/wd4310;/wd4366;/wd4587;/wd4592;/wd4628;/wd4723;/wd4724;/wd4868;/wd4996;/wd4068;/wd4091;/wd4146;/wd4800;/wd4018;/wd4365;/wd4388;/wd4389;/wd4100;/wd4459;/wd4505;/wd4701;/wd4702;/wd4061;/wd4127;/wd4200;/wd4201;/wd4296;/wd4316;/wd4324;/wd4355;/wd4371;/wd4435;/wd4514;/wd4548;/wd4571;/wd4574;/wd4582;/wd4583;/wd4619;/wd4623;/wd4625;/wd4626;/wd4643;/wd4647;/wd4668;/wd4706;/wd4710;/wd4711;/wd4714;/wd4820;/wd5026;/wd5027;/wd5031;/wd5045;/we4099;/we4129;/we4566"
@@ -57,6 +59,7 @@ add_library(shield STATIC
 
 target_include_directories(shield PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${ITLIB_INCLUDE_DIRS}
 )
 
 target_link_libraries(shield PUBLIC
