@@ -73,19 +73,19 @@ private:
         {
             retryPolicy->run([this, &func]()
             {
-                run_without_retry_policy<_Texcept>(std::forward<Func>(func));
+                run_without_retry_policy<_Texcept, true>(std::forward<Func>(func));
             });
         }
         else
         {
             return retryPolicy->run([this, &func]() -> Ret
             {
-                return run_without_retry_policy<_Texcept>(std::forward<Func>(func));
+                return run_without_retry_policy<_Texcept, true>(std::forward<Func>(func));
             });
         }
     }
 
-    template<class _Texcept = shield::unused_exception, class Func>
+    template<class _Texcept = shield::unused_exception, bool _AlwaysRethrowExceptions = false, class Func>
     auto run_without_retry_policy(Func&& func) const
     {
         bool succeeded = false;
@@ -108,6 +108,11 @@ private:
             catch (const _Texcept&)
             {
                 succeeded = false;
+
+                if constexpr (_AlwaysRethrowExceptions)
+                {
+                    throw;
+                }
             }
         }
         else
@@ -123,13 +128,13 @@ private:
                 std::cerr << ex.what() << std::endl;
                 succeeded = false;
 
-                if constexpr (std::is_default_constructible_v<Ret>)
-                {
-                    return Ret();
-                }
-                else
+                if constexpr (_AlwaysRethrowExceptions || !std::is_default_constructible_v<Ret>)
                 {
                     throw;
+                }
+                else if constexpr (std::is_default_constructible_v<Ret>)
+                {
+                    return Ret();
                 }
             }
         }

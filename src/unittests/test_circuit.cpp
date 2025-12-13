@@ -38,7 +38,7 @@ TEST_CASE_METHOD(circuit_test_fixture, "Circuit - successful execution", "[circu
 {
     std::shared_ptr<shield::circuit_breaker> cb = shield::circuit_breaker::create("test", 3, std::chrono::seconds(1));
 
-    int result = shield::circuit("test").run([]()
+    const int result = shield::circuit("test").run([]()
     {
         return 42;
     });
@@ -124,7 +124,7 @@ TEST_CASE_METHOD(circuit_test_fixture, "Circuit - transitions to half-open after
     std::this_thread::sleep_for(std::chrono::milliseconds(150));
 
     // Next call should transition to half-open
-    int result = shield::circuit("test").run([]() { return 99; });
+    const int result = shield::circuit("test").run([]() { return 99; });
 
     REQUIRE(result == 99);
     REQUIRE(cb->get_state() == shield::circuit_breaker::state::closed);
@@ -151,7 +151,7 @@ TEST_CASE_METHOD(circuit_test_fixture, "Circuit - transitions to half-open after
     std::this_thread::sleep_for(std::chrono::milliseconds(150));
 
     // Next call should transition to half-open
-    int result = shield::circuit("test").run([]() { return 99; });
+    const int result = shield::circuit("test").run([]() { return 99; });
 
     REQUIRE(result == 99);
     REQUIRE(cb->get_state() == shield::circuit_breaker::state::closed);
@@ -181,7 +181,7 @@ TEST_CASE_METHOD(circuit_test_fixture, "Circuit - half-open closes on success", 
     // Wait and try again (transitions to half-open then closed)
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
-    int result = shield::circuit("test").run([]() { return 123; });
+    const int result = shield::circuit("test").run([]() { return 123; });
 
     REQUIRE(result == 123);
     REQUIRE(cb->get_state() == shield::circuit_breaker::state::closed);
@@ -204,7 +204,7 @@ TEST_CASE_METHOD(circuit_test_fixture, "Circuit - half-open closes on success wi
     // Wait and try again (transitions to half-open then closed)
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
-    int result = shield::circuit("test").run([]() { return 123; });
+    const int result = shield::circuit("test").run([]() { return 123; });
 
     REQUIRE(result == 123);
     REQUIRE(cb->get_state() == shield::circuit_breaker::state::closed);
@@ -400,7 +400,7 @@ TEST_CASE_METHOD(circuit_test_fixture, "Circuit with retry policy - basic integr
 
     int call_count = 0;
 
-    std::string result = shield::circuit("test-basic")
+    const std::string result = shield::circuit("test-basic")
         .with_retry_policy(policy)
         .run<std::runtime_error>([&call_count]()
         {
@@ -446,7 +446,7 @@ TEST_CASE_METHOD(circuit_test_fixture, "Circuit with retry policy - exponential 
         .with_exponential_backoff(std::chrono::milliseconds(10), 2.0, std::chrono::seconds(1));
 
     int call_count = 0;
-    std::chrono::steady_clock::time_point start = std::chrono::steady_clock::now();
+    const std::chrono::steady_clock::time_point start = std::chrono::steady_clock::now();
 
     try
     {
@@ -464,9 +464,8 @@ TEST_CASE_METHOD(circuit_test_fixture, "Circuit with retry policy - exponential 
         // Expected
     }
 
-    std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
-    std::chrono::milliseconds duration =
-        std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+    const std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+    const std::chrono::milliseconds duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
 
     REQUIRE(call_count == 4);
     // Total delay should be approximately: 10 + 20 + 40 = 70ms minimum
@@ -483,7 +482,7 @@ TEST_CASE_METHOD(circuit_test_fixture, "Circuit with retry policy - specific exc
     int runtime_count = 0;
 
     // Should retry on runtime_error
-    std::string result1 = shield::circuit("test-filter-1")
+    const std::string result1 = shield::circuit("test-filter-1")
         .with_retry_policy(policy)
         .run<std::runtime_error>([&runtime_count]()
         {
@@ -532,7 +531,7 @@ TEST_CASE_METHOD(circuit_test_fixture, "Circuit with retry policy - custom predi
 
     int call_count = 0;
 
-    std::string result = shield::circuit("test-predicate")
+    const std::string result = shield::circuit("test-predicate")
         .with_retry_policy(policy)
         .run<std::runtime_error>([&call_count]()
         {
@@ -618,7 +617,7 @@ TEST_CASE_METHOD(circuit_test_fixture, "Circuit with retry policy - int return t
 
     int call_count = 0;
 
-    int result = shield::circuit("test-int")
+    const int result = shield::circuit("test-int")
         .with_retry_policy(policy)
         .run<std::runtime_error>([&call_count]()
         {
@@ -738,7 +737,7 @@ TEST_CASE_METHOD(circuit_test_fixture, "Circuit with retry policy - multiple cir
     int fast_count = 0;
     int slow_count = 0;
 
-    std::string result1 = shield::circuit("fast-circuit")
+    const std::string result1 = shield::circuit("fast-circuit")
         .with_retry_policy(fast_policy)
         .run<std::runtime_error>([&fast_count]()
         {
@@ -750,7 +749,7 @@ TEST_CASE_METHOD(circuit_test_fixture, "Circuit with retry policy - multiple cir
             return std::string("fast");
         });
 
-    std::string result2 = shield::circuit("slow-circuit")
+    const std::string result2 = shield::circuit("slow-circuit")
         .with_retry_policy(slow_policy)
         .run<std::runtime_error>([&slow_count]()
         {
@@ -774,7 +773,7 @@ TEST_CASE_METHOD(circuit_test_fixture, "Circuit with retry policy - convenience 
 
     int call_count = 0;
 
-    int result = shield::circuit("convenience-test")
+    const int result = shield::circuit("convenience-test")
         .with_retry_policy(policy)
         .run<std::runtime_error>([&call_count]()
         {
@@ -797,7 +796,7 @@ TEST_CASE_METHOD(circuit_test_fixture, "Circuit with retry policy - linear backo
         .with_linear_backoff(std::chrono::milliseconds(10), std::chrono::seconds(1));
 
     int call_count = 0;
-    std::chrono::steady_clock::time_point start = std::chrono::steady_clock::now();
+    const std::chrono::steady_clock::time_point start = std::chrono::steady_clock::now();
 
     try
     {
@@ -805,7 +804,7 @@ TEST_CASE_METHOD(circuit_test_fixture, "Circuit with retry policy - linear backo
             .with_retry_policy(policy)
             .run<std::runtime_error>([&call_count]()
             {
-                call_count++;
+                ++call_count;
                 throw std::runtime_error("Fail");
                 return 0;
             });
@@ -815,9 +814,8 @@ TEST_CASE_METHOD(circuit_test_fixture, "Circuit with retry policy - linear backo
         // Expected
     }
 
-    std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
-    std::chrono::milliseconds duration =
-        std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+    const std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+    const std::chrono::milliseconds duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
 
     REQUIRE(call_count == 4);
     // Linear delays: 10 + 20 + 30 = 60ms minimum
@@ -829,7 +827,7 @@ TEST_CASE_METHOD(circuit_test_fixture, "Circuit without retry policy - normal op
     int call_count = 0;
 
     // Circuit without retry policy should work normally
-    std::string result = shield::circuit("no-retry")
+    const std::string result = shield::circuit("no-retry")
         .run<std::runtime_error>([&call_count]()
         {
             call_count++;
