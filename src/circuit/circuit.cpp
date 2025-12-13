@@ -14,6 +14,12 @@ circuit::circuit(std::shared_ptr<circuit_breaker> breaker)
 {
 }
 
+circuit& circuit::with_retry_policy(const retry_policy& policy)
+{
+    retryPolicy = policy;
+    return *this;
+}
+
 void circuit::on_success() const
 {
     detail::circuit_breaker_manager::get_instance().on_success(circuitBreaker);

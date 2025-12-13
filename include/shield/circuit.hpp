@@ -21,23 +21,91 @@ public:
     circuit(const std::string& name, retry_policy retry = default_retry_policy, timeout_policy timeout = default_timeout_policy, fallback_policy fallback = default_fallback_policy);
     circuit(std::shared_ptr<circuit_breaker> breaker);
 
+    circuit& with_retry_policy(const retry_policy& policy);
+
     template<class _Texcept = shield::unused_exception, class Func>
     auto run(Func&& func) const
+    {
+        using Ret = std::invoke_result_t<Func>;
+
+        if (retryPolicy)
+        {
+            if constexpr (std::is_void_v<Ret>)
+            {
+                run_with_retry_policy<_Texcept>(std::forward<Func>(func));
+            }
+            else
+            {
+                return run_with_retry_policy<_Texcept>(std::forward<Func>(func));
+            }
+        }
+        else
+        {
+            if constexpr (std::is_void_v<Ret>)
+            {
+                run_without_retry_policy<_Texcept>(std::forward<Func>(func));
+            }
+            else
+            {
+                return run_without_retry_policy<_Texcept>(std::forward<Func>(func));
+            }
+        }
+    }
+
+    template<class _Texcept = shield::unused_exception, class Func>
+    static auto run(Func&& func, const std::string& name, retry_policy retry = default_retry_policy, timeout_policy timeout = default_timeout_policy, fallback_policy fallback = default_fallback_policy)
+    {
+        circuit cir(name, retry, timeout, fallback);
+        return cir.run<_Texcept>(std::forward<Func>(func));
+    }
+
+    const retry_policy& get_retry_policy() const;
+    const timeout_policy& get_timeout_policy() const;
+    const fallback_policy& get_fallback_policy() const;
+
+private:
+    template<class _Texcept = shield::unused_exception, class Func>
+    auto run_with_retry_policy(Func&& func) const
+    {
+        using Ret = std::invoke_result_t<Func>;
+
+        if constexpr (std::is_void_v<Ret>)
+        {
+            retryPolicy->run([this, &func]()
+            {
+                run_without_retry_policy<_Texcept>(std::forward<Func>(func));
+            });
+        }
+        else
+        {
+            return retryPolicy->run([this, &func]() -> Ret
+            {
+                return run_without_retry_policy<_Texcept>(std::forward<Func>(func));
+            });
+        }
+    }
+
+    template<class _Texcept = shield::unused_exception, class Func>
+    auto run_without_retry_policy(Func&& func) const
     {
         bool succeeded = false;
         itlib::sentry on_exit_function([&]() { handle_function_exit(succeeded); });
 
-        on_execute_function();
+        // Check circuit breaker state and throw if open
+        if (!on_execute_function())
+        {
+            throw std::runtime_error("Circuit is OPEN");
+        }
 
         using Ret = std::invoke_result_t<Func>;
-        if constexpr (std::is_void_v<Ret> || !std::is_convertible_v<Ret, bool>)
+        if constexpr (std::is_void_v<Ret>)
         {
             try
             {
                 func();
                 succeeded = true;
             }
-            catch (const _Texcept& ex)
+            catch (const _Texcept&)
             {
                 succeeded = false;
             }
@@ -47,14 +115,7 @@ public:
             try
             {
                 Ret result = func();
-                if (result)
-                {
-                    succeeded = true;
-                }
-                else
-                {
-                    succeeded = false;
-                }
+                succeeded = true;
                 return result;
             }
             catch (const _Texcept& ex)
@@ -68,24 +129,12 @@ public:
                 }
                 else
                 {
-                    throw ex;
+                    throw;
                 }
             }
         }
     }
 
-    template<class _Texcept = shield::unused_exception, class Func>
-    static auto run(Func&& func, const std::string& name, retry_policy retry = default_retry_policy, timeout_policy timeout = default_timeout_policy, fallback_policy fallback = default_fallback_policy)
-    {
-        circuit cir(name, retry, timeout, fallback);
-        return cir.run<Func, _Texcept>(func);
-    }
-
-    const retry_policy& get_retry_policy() const;
-    const timeout_policy& get_timeout_policy() const;
-    const fallback_policy& get_fallback_policy() const;
-
-private:
     void on_success() const;
     void on_failure() const;
     bool on_execute_function() const;
@@ -93,5 +142,6 @@ private:
 
 private:
     std::shared_ptr<circuit_breaker> circuitBreaker;
+    std::optional<retry_policy> retryPolicy;
 };
 } // shield
