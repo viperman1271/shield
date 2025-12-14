@@ -15,6 +15,7 @@ namespace detail
             , name(name)
             , failureCount(0)
             , state(shield::circuit_breaker::state::closed)
+            , lastFailureTime(std::chrono::time_point<std::chrono::steady_clock>{}) // Epoch
         {
         }
 
@@ -24,6 +25,7 @@ namespace detail
             , timeout(cfg.timeout)
             , failureCount(0)
             , state(shield::circuit_breaker::state::closed)
+            , lastFailureTime(std::chrono::time_point<std::chrono::steady_clock>{}) // Epoch
         {
         }
 
@@ -93,16 +95,27 @@ namespace detail
 
 std::shared_ptr<shield::circuit_breaker> circuit_breaker::create(const std::string& name, int failureThreshold, std::chrono::milliseconds timeout)
 {
-    std::shared_ptr<shield::circuit_breaker> newInstance(new shield::circuit_breaker(name, failureThreshold, timeout));
-    detail::circuit_breaker_manager::get_instance().register_circuit_breaker(newInstance);
-    return newInstance;
+    detail::circuit_breaker_manager& mgr = detail::circuit_breaker_manager::get_instance();
+    std::shared_ptr<shield::circuit_breaker> instance = mgr.get(name);
+    if (instance == nullptr)
+    {
+        instance = std::shared_ptr<shield::circuit_breaker>(new shield::circuit_breaker(name, failureThreshold, timeout));
+        detail::circuit_breaker_manager::get_instance().register_circuit_breaker(instance);
+    }
+
+    return instance;
 }
 
 std::shared_ptr<shield::circuit_breaker> circuit_breaker::create(const config& cfg)
 {
-    std::shared_ptr<shield::circuit_breaker> newInstance(new shield::circuit_breaker(cfg));
-    detail::circuit_breaker_manager::get_instance().register_circuit_breaker(newInstance);
-    return newInstance;
+    detail::circuit_breaker_manager& mgr = detail::circuit_breaker_manager::get_instance();
+    std::shared_ptr<shield::circuit_breaker> instance = mgr.get(cfg.name);
+    if (instance == nullptr)
+    {
+        instance = std::shared_ptr<shield::circuit_breaker>(new shield::circuit_breaker(cfg));
+        detail::circuit_breaker_manager::get_instance().register_circuit_breaker(instance);
+    }
+    return instance;
 }
 
 circuit_breaker::circuit_breaker(const std::string& name, int failureThreshold, std::chrono::milliseconds timeout)

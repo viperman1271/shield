@@ -5,7 +5,7 @@
 namespace shield
 {
 circuit::circuit(const std::string& name, retry_policy retry, timeout_policy timeout, fallback_policy fallback)
-    : circuitBreaker(detail::circuit_breaker_manager::get_instance().get(name))
+    : circuitBreaker(detail::circuit_breaker_manager::get_instance().get_or_create(name))
 {
 }
 

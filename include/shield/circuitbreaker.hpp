@@ -65,8 +65,7 @@ private:
     circuit_breaker(const std::string& name, int failureThreshold = 5, std::chrono::milliseconds timeout = std::chrono::seconds(60));
     circuit_breaker(const config& cfg);
 
-//private:
-public:
+private:
     void on_success();
     void on_failure();
     bool on_execute_function();

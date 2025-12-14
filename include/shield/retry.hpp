@@ -44,7 +44,9 @@ public:
     {
         return std::make_unique<fixed_backoff>(delay);
     }
-    
+
+    std::chrono::milliseconds get_delay() const { return delay; }
+
 private:
     std::chrono::milliseconds delay;
 };
@@ -187,7 +189,6 @@ public:
     // CONSTRUCTORS
     // ========================================================================
     
-    // Default: 3 attempts with exponential backoff
     retry_policy()
         : maxAttempts(3)
         , backoff(std::make_unique<exponential_backoff>(std::chrono::milliseconds(100)))
@@ -209,17 +210,16 @@ public:
     {
     }
     
-    // Copy constructor
     retry_policy(const retry_policy& other)
         : maxAttempts(other.maxAttempts)
         , backoff(other.backoff ? other.backoff->clone() : nullptr)
         , retryOnAllExceptions(other.retryOnAllExceptions)
         , retryPredicate(other.retryPredicate)
         , retryableExceptions(other.retryableExceptions)
+        , retryCallback(other.retryCallback)
     {
     }
     
-    // Copy assignment
     retry_policy& operator=(const retry_policy& other)
     {
         if (this != &other)
@@ -229,6 +229,7 @@ public:
             retryOnAllExceptions = other.retryOnAllExceptions;
             retryPredicate = other.retryPredicate;
             retryableExceptions = other.retryableExceptions;
+            retryCallback = other.retryCallback;
         }
         return *this;
     }
@@ -367,6 +368,8 @@ public:
         retryCallback = std::move(callback);
         return *this;
     }
+
+    bool has_valid_retry_callback() const { return retryCallback.operator bool(); }
     
 private:
     bool should_retry(const std::exception& e, int attempt) const

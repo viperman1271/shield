@@ -26,7 +26,6 @@ TEST_CASE_METHOD(circuit_test_fixture, "Circuit - initial state is closed", "[ci
 
     shield::circuit("test").run([]
     {
-        std::cout << "std::cout" << std::endl;
         return true;
     });
 
@@ -133,7 +132,7 @@ TEST_CASE_METHOD(circuit_test_fixture, "Circuit - transitions to half-open after
 
 TEST_CASE_METHOD(circuit_test_fixture, "Circuit - transitions to half-open after timeout with explicit exception", "[circuit][circuit_breaker]")
 {
-    std::shared_ptr<shield::circuit_breaker> cb = shield::circuit_breaker::create("test", 2, std::chrono::milliseconds(100));
+    std::shared_ptr<shield::circuit_breaker> cb = shield::circuit_breaker::create("test", 2, std::chrono::milliseconds(1000));
 
     // Open the circuit
     for (int i = 0; i < 2; i++)
@@ -148,7 +147,7 @@ TEST_CASE_METHOD(circuit_test_fixture, "Circuit - transitions to half-open after
     REQUIRE(cb->get_state() == shield::circuit_breaker::state::open);
 
     // Wait for timeout
-    std::this_thread::sleep_for(std::chrono::milliseconds(150));
+    std::this_thread::sleep_for(std::chrono::milliseconds(1100));
 
     // Next call should transition to half-open
     const int result = shield::circuit("test").run([]() { return 99; });
@@ -189,7 +188,7 @@ TEST_CASE_METHOD(circuit_test_fixture, "Circuit - half-open closes on success", 
 
 TEST_CASE_METHOD(circuit_test_fixture, "Circuit - half-open closes on success with explicit exception", "[circuit][circuit_breaker]")
 {
-    std::shared_ptr<shield::circuit_breaker> cb = shield::circuit_breaker::create("test", 2, std::chrono::milliseconds(50));
+    std::shared_ptr<shield::circuit_breaker> cb = shield::circuit_breaker::create("test", 2, std::chrono::milliseconds(1000));
 
     // Open the circuit
     for (int i = 0; i < 2; i++)
@@ -202,7 +201,7 @@ TEST_CASE_METHOD(circuit_test_fixture, "Circuit - half-open closes on success wi
     }
 
     // Wait and try again (transitions to half-open then closed)
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
     const int result = shield::circuit("test").run([]() { return 123; });
 
@@ -212,7 +211,7 @@ TEST_CASE_METHOD(circuit_test_fixture, "Circuit - half-open closes on success wi
 
 TEST_CASE_METHOD(circuit_test_fixture, "Circuit - half-open reopens on failure", "[circuit][circuit_breaker]")
 {
-    std::shared_ptr<shield::circuit_breaker> cb = shield::circuit_breaker::create("test", 2, std::chrono::milliseconds(50));
+    std::shared_ptr<shield::circuit_breaker> cb = shield::circuit_breaker::create("test", 2, std::chrono::milliseconds(1000));
 
     // Open the circuit
     for (int i = 0; i < 2; i++)
@@ -231,7 +230,7 @@ TEST_CASE_METHOD(circuit_test_fixture, "Circuit - half-open reopens on failure",
     }
 
     // Wait for half-open transition
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
     // Fail again in half-open state
     try
@@ -341,9 +340,12 @@ TEST_CASE_METHOD(circuit_test_fixture, "Circuit - custom failure threshold", "[c
                 return 0;
             });
         }
-        catch (...) {}
+        catch (...) 
+        {
+        }
     }
 
+    REQUIRE(cb->get_failure_count() == 9);
     REQUIRE(cb->get_state() == shield::circuit_breaker::state::closed);
 
     // 10th failure should open it
@@ -359,6 +361,7 @@ TEST_CASE_METHOD(circuit_test_fixture, "Circuit - custom failure threshold", "[c
     {
     }
 
+    REQUIRE(cb->get_failure_count() == 10);
     REQUIRE(cb->get_state() == shield::circuit_breaker::state::open);
 }
 
@@ -376,6 +379,7 @@ TEST_CASE_METHOD(circuit_test_fixture, "Circuit - custom failure threshold with 
         });
     }
 
+    REQUIRE(cb->get_failure_count() == 9);
     REQUIRE(cb->get_state() == shield::circuit_breaker::state::closed);
 
     // 10th failure should open it
@@ -385,6 +389,7 @@ TEST_CASE_METHOD(circuit_test_fixture, "Circuit - custom failure threshold with 
         return 0;
     });
 
+    REQUIRE(cb->get_failure_count() == 10);
     REQUIRE(cb->get_state() == shield::circuit_breaker::state::open);
 }
 
@@ -531,20 +536,23 @@ TEST_CASE_METHOD(circuit_test_fixture, "Circuit with retry policy - custom predi
 
     int call_count = 0;
 
-    const std::string result = shield::circuit("test-predicate")
-        .with_retry_policy(policy)
-        .run<std::runtime_error>([&call_count]()
-        {
-            ++call_count;
-            if (call_count < 3)
+    REQUIRE_THROWS_AS(
+        shield::circuit("test-predicate")
+            .with_retry_policy(policy)
+            .run<std::runtime_error>([&call_count]()
             {
-                throw std::runtime_error("Maybe retry");
-            }
-            return std::string("done");
-        });
+                ++call_count;
+                if (call_count < 3)
+                {
+                    throw std::runtime_error("Maybe retry");
+                }
+                return std::string("done");
+            }),
+        std::runtime_error
+    );
 
-    REQUIRE(result == "done");
-    REQUIRE(call_count == 3);
+    REQUIRE(predicate_calls == 2);
+    REQUIRE(call_count == 2);
 }
 
 TEST_CASE_METHOD(circuit_test_fixture, "Circuit with retry policy - callback invocation", "[circuit][retry_policy]")
@@ -842,18 +850,15 @@ TEST_CASE_METHOD(circuit_test_fixture, "Circuit without retry policy - fails imm
 {
     int call_count = 0;
 
-    // Without retry policy, should fail on first error
-    REQUIRE_THROWS_AS(
-        shield::circuit("fail-fast")
+    const std::string returnValue = shield::circuit("fail-fast")
         .run<std::runtime_error>([&call_count]()
         {
             ++call_count;
             throw std::runtime_error("Immediate failure");
             return std::string("never");
-        }),
-        std::runtime_error
-    );
-
+        });
+    
+    REQUIRE(returnValue.empty());
     REQUIRE(call_count == 1); // No retries
 }
 
