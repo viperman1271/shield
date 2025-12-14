@@ -17,8 +17,10 @@ public:
     circuit_breaker_manager();
     ~circuit_breaker_manager() = default;
 
-    std::shared_ptr<shield::circuit_breaker> create(const shield::circuit_breaker::config & cfg);
+    std::shared_ptr<shield::circuit_breaker> create(const shield::circuit_breaker::config& cfg);
+    std::shared_ptr<shield::circuit_breaker> create(const std::string& name);
     std::shared_ptr<shield::circuit_breaker> get(const std::string& name);
+    std::shared_ptr<shield::circuit_breaker> get_or_create(const std::string& name);
 
     static circuit_breaker_manager& get_instance();
 

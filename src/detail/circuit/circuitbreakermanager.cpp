@@ -47,19 +47,37 @@ namespace impl
             return iter->second.instance;
         }
 
+        std::shared_ptr<shield::circuit_breaker> create(const std::string& name)
+        {
+            shield::circuit_breaker::config cfg;
+            cfg.name = name;
+            return create(cfg);
+        }
+
         std::shared_ptr<shield::circuit_breaker> get(const std::string& name)
         {
             std::lock_guard<std::recursive_mutex> lock(mutex);
 
             const auto iter = circuitBreakers.find(name);
-            if (iter == circuitBreakers.end())
+            if (iter != circuitBreakers.end())
             {
-                shield::circuit_breaker::config cfg;
-                cfg.name = name;
-                return create(cfg);
+                return iter->second.instance;
+            }
+            
+            return nullptr;
+        }
+
+        std::shared_ptr<shield::circuit_breaker> get_or_create(const std::string& name)
+        {
+            std::lock_guard<std::recursive_mutex> lock(mutex);
+
+            std::shared_ptr<shield::circuit_breaker> instance = get(name);
+            if (instance == nullptr)
+            {
+                instance = create(name);
             }
 
-            return iter->second.instance;
+            return instance;
         }
 
         void clear()
@@ -151,9 +169,19 @@ std::shared_ptr<shield::circuit_breaker> circuit_breaker_manager::create(const s
     return pImpl->create(cfg);
 }
 
+std::shared_ptr<shield::circuit_breaker> circuit_breaker_manager::create(const std::string& name)
+{
+    return pImpl->create(name);
+}
+
 std::shared_ptr<shield::circuit_breaker> circuit_breaker_manager::get(const std::string& name)
 {
     return pImpl->get(name);
+}
+
+std::shared_ptr<shield::circuit_breaker> circuit_breaker_manager::get_or_create(const std::string& name)
+{
+    return pImpl->get_or_create(name);
 }
 
 circuit_breaker_manager& circuit_breaker_manager::get_instance()
