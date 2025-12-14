@@ -13,22 +13,13 @@ A modern C++ resilience library implementing essential fault-tolerance patterns 
 
 # Requirements
 
-- C++17 or higher
-- CMake 3.20+
-- vcpkg (recommended for dependency management)
-
-# Dependencies
-
-- Boost (system, asio)
-- Folly
-- Prometheus C++ client
-- Catch2 (for testing)
+- C++20 or higher
+- CMake 3.10+
+- vcpkg
 
 # How to Build
 
-## Using vcpkg
-
-### Install vcpkg
+## Install vcpkg
 
 If vcpkg is not already present and available system-wide, you'll need to setup vcpkg
 
@@ -38,202 +29,46 @@ git clone https://github.com/Microsoft/vcpkg.git
 cd vcpkg
 ./bootstrap-vcpkg.sh
 
-# Install dependencies
-./vcpkg install boost-system boost-asio folly prometheus-cpp catch2
-
-# Build the project
-mkdir build && cd build
-cmake .. -DCMAKE_TOOLCHAIN_FILE=/path/to/vcpkg/scripts/buildsystems/vcpkg.cmake
-cmake --build .
+# Ensure env values are available - should write the path where it was installed
+echo $VCPKG_ROOT
 ```
 
-### Run CMake
+## Run CMake
 Here are examples on running CMake with system-wide vcpkg installation
 
-#### Windows
-cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=%VCPKG_ROOT%/scripts/buildsystems/vcpkg.cmake -S . -G "Visual Studio 17 2022"
-
-#### Linux
-cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=$VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake -S .
-
-## Manual Installation
-
-On Linux, it is possible to use the system package manager to install dependencies instead of vcpkg. This is untested.
-
-# Quick Start
-
-```cpp
-#include "shield/all.hpp"
-
-using namespace shield_cpp;
-
-// Retry with exponential backoff
-auto result = retry([]() {
-    return call_unreliable_service();
-}, 3, std::chrono::milliseconds(100));
-
-// Circuit breaker to prevent cascading failures
-circuit_breaker cb(5, std::chrono::seconds(60));
-auto data = cb.execute([]() {
-    return fetch_data_from_service();
-});
-
-// Timeout for long-running operations
-auto response = with_timeout([]() {
-    return slow_network_call();
-}, std::chrono::seconds(5));
-
-// Fallback for graceful degradation
-auto value = with_fallback(
-    []() { return fetch_from_primary(); },
-    []() { return fetch_from_cache(); }
-);
-
-// Combine patterns for maximum resilience
-auto resilient_call = with_fallback(
-    [&cb]() {
-        return cb.execute([]() {
-            return retry([]() {
-                return with_timeout([]() {
-                    return api_call();
-                }, std::chrono::seconds(2));
-            }, 3);
-        });
-    },
-    []() { return cached_response(); }
-);
-```
-
-# Pattern Details
-
-## Retry Pattern
-
-Automatically retries failed operations with configurable attempts and exponential backoff.
-
-```cpp
-int attempt = 0;
-auto result = retry([&attempt]() {
-    attempt++;
-    if (attempt < 3) {
-        throw std::runtime_error("Temporary failure");
-    }
-    return 42;
-}, 5, std::chrono::milliseconds(100));
-```
-
-## Circuit Breaker Pattern
-
-Implements the circuit breaker pattern with three states: CLOSED, OPEN, and HALF_OPEN.
-
-```cpp
-circuit_breaker cb(5, std::chrono::seconds(60));
-
-// Circuit opens after 5 failures
-for (int i = 0; i < 5; i++) {
-    try {
-        cb.execute([]() {
-            throw std::runtime_error("Service down");
-            return 0;
-        });
-    } catch (...) {}
-}
-
-// Circuit is now OPEN - calls fail fast
-assert(cb.get_state() == circuit_breaker::state::open);
-```
-
-## Timeout Pattern
-
-Provides time-bounded execution with two implementations:
-
-```cpp
-// Simple timeout using std::async
-auto result = with_timeout([]() {
-    return long_running_operation();
-}, std::chrono::seconds(5));
-
-// Advanced timeout using Boost.Asio
-timeout_executor executor;
-auto result = executor.execute_with_timeout([]() {
-    return operation();
-}, std::chrono::milliseconds(500));
-```
-
-## Bulkhead Pattern
-
-Limits concurrent executions to prevent resource exhaustion.
-
-```cpp
-bulkhead bh(10); // Max 10 concurrent operations
-
-auto future = bh.execute([]() {
-    return expensive_operation();
-});
-
-auto result = future.get();
-```
-
-## Fallback Pattern
-
-Provides alternative execution paths when primary operations fail.
-
-```cpp
-auto result = with_fallback(
-    []() { return primary_service(); },
-    []() { return cached_value(); }
-);
-```
-
-# Testing
-
-Comprehensive unit tests are provided using Catch2:
-
+### Windows
 ```bash
-# Run all tests
-./build/shield_tests
+# Configure
+cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_TOOLCHAIN_FILE=%VCPKG_ROOT%/scripts/buildsystems/vcpkg.cmake -S . -G "Visual Studio 17 2022"
 
-# Run specific test suites
-./build/shield_tests "[retry]"
-./build/shield_tests "[circuit_breaker]"
-./build/shield_tests "[integration]"
+# Build
+cmake --build build --config Debug -j4
 ```
 
-# Observability
+Will specifically create for Visual Studio 2022. This will compile the solution from the build folder, in Debug configuration, with 4 threads.
 
-Shield C++ integrates with Prometheus for monitoring:
+### Linux
+```bash
+# Configure
+cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_TOOLCHAIN_FILE=$VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake -S .
 
-```cpp
-auto registry = std::make_shared<prometheus::Registry>();
-resilient_service service(registry);
-
-// Automatic metrics collection:
-// - requests_total
-// - failures_total
-// - active_requests
-
-auto result = service.execute_resilient(
-    []() { return api_call(); },
-    []() { return fallback_value(); }
-);
+# Build
+cmake --build build --config Debug -j4
 ```
+
+This will compile the application from the build folder, in Debug configuration, with 4 threads.
 
 # Project Structure
 
 ```
-shield-cpp/
+shield/
 ├── include/
-|   └── shield/
-│       └── all.hpp          # Main library header
+|   └── shield/                 # All public library headers
 ├── examples/
 │   └── main.cpp                # Usage examples
 ├── src/ 
-|   └──tests/
-│       ├── test_retry.cpp          # Retry pattern tests
-│       ├── test_circuit_breaker.cpp # Circuit breaker tests
-│       ├── test_timeout.cpp        # Timeout pattern tests
-│       ├── test_bulkhead.cpp       # Bulkhead pattern tests
-│       ├── test_fallback.cpp       # Fallback pattern tests
-│       └── test_integration.cpp    # Integration tests
+│   ├── detail/                 # Any private classes
+|   └── tests/                  # Unit tests
 ├── CMakeLists.txt              # Build configuration
 ├── vcpkg.json                  # Dependency manifest
 └── README.md                   # This file
@@ -251,19 +86,20 @@ shield-cpp/
 
 Contributions are welcome! Please ensure:
 
-- Code follows the existing style (snake_case, braces on separate lines)
+- Code follows the existing style
 - All tests pass
 - New features include comprehensive tests
 - Documentation is updated
 
 # License
 
-MIT License - see LICENSE file for details
+MIT License - see [LICENSE](LICENSE) file for details
 
-# Acknowledgments
+# Dependencies
 
 Built with the following libraries:
 - [Boost](https://www.boost.org/)
 - [Folly](https://github.com/facebook/folly)
+- [itlib](https://github.com/iboB/itlib)
 - [Prometheus C++](https://github.com/jupp0r/prometheus-cpp)
 - [Catch2](https://github.com/catchorg/Catch2)
