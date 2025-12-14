@@ -2,7 +2,7 @@
 
 A modern C++ resilience library implementing essential fault-tolerance patterns for building robust distributed systems.
 
-## Features
+# Features
 
 - **Retry Pattern**: Automatic retry with exponential backoff
 - **Circuit Breaker**: Prevent cascading failures with state management
@@ -11,22 +11,26 @@ A modern C++ resilience library implementing essential fault-tolerance patterns 
 - **Fallback Pattern**: Graceful degradation with alternative strategies
 - **Observability**: Built-in Prometheus metrics integration
 
-## Requirements
+# Requirements
 
 - C++17 or higher
 - CMake 3.20+
 - vcpkg (recommended for dependency management)
 
-## Dependencies
+# Dependencies
 
 - Boost (system, asio)
 - Folly
 - Prometheus C++ client
 - Catch2 (for testing)
 
-## Installation
+# How to Build
 
-### Using vcpkg
+## Using vcpkg
+
+### Install vcpkg
+
+If vcpkg is not already present and available system-wide, you'll need to setup vcpkg
 
 ```bash
 # Install vcpkg if you haven't already
@@ -43,20 +47,23 @@ cmake .. -DCMAKE_TOOLCHAIN_FILE=/path/to/vcpkg/scripts/buildsystems/vcpkg.cmake
 cmake --build .
 ```
 
-### Manual Installation
+### Run CMake
+Here are examples on running CMake with system-wide vcpkg installation
 
-Install dependencies using your system package manager, then:
+#### Windows
+cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=%VCPKG_ROOT%/scripts/buildsystems/vcpkg.cmake -S . -G "Visual Studio 17 2022"
 
-```bash
-mkdir build && cd build
-cmake ..
-cmake --build .
-```
+#### Linux
+cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=$VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake -S .
 
-## Quick Start
+## Manual Installation
+
+On Linux, it is possible to use the system package manager to install dependencies instead of vcpkg. This is untested.
+
+# Quick Start
 
 ```cpp
-#include "shield_cpp.hpp"
+#include "shield/all.hpp"
 
 using namespace shield_cpp;
 
@@ -97,9 +104,9 @@ auto resilient_call = with_fallback(
 );
 ```
 
-## Pattern Details
+# Pattern Details
 
-### Retry Pattern
+## Retry Pattern
 
 Automatically retries failed operations with configurable attempts and exponential backoff.
 
@@ -114,7 +121,7 @@ auto result = retry([&attempt]() {
 }, 5, std::chrono::milliseconds(100));
 ```
 
-### Circuit Breaker Pattern
+## Circuit Breaker Pattern
 
 Implements the circuit breaker pattern with three states: CLOSED, OPEN, and HALF_OPEN.
 
@@ -135,7 +142,7 @@ for (int i = 0; i < 5; i++) {
 assert(cb.get_state() == circuit_breaker::state::open);
 ```
 
-### Timeout Pattern
+## Timeout Pattern
 
 Provides time-bounded execution with two implementations:
 
@@ -152,7 +159,7 @@ auto result = executor.execute_with_timeout([]() {
 }, std::chrono::milliseconds(500));
 ```
 
-### Bulkhead Pattern
+## Bulkhead Pattern
 
 Limits concurrent executions to prevent resource exhaustion.
 
@@ -166,7 +173,7 @@ auto future = bh.execute([]() {
 auto result = future.get();
 ```
 
-### Fallback Pattern
+## Fallback Pattern
 
 Provides alternative execution paths when primary operations fail.
 
@@ -177,7 +184,7 @@ auto result = with_fallback(
 );
 ```
 
-## Testing
+# Testing
 
 Comprehensive unit tests are provided using Catch2:
 
@@ -191,7 +198,7 @@ Comprehensive unit tests are provided using Catch2:
 ./build/shield_tests "[integration]"
 ```
 
-## Observability
+# Observability
 
 Shield C++ integrates with Prometheus for monitoring:
 
@@ -210,27 +217,29 @@ auto result = service.execute_resilient(
 );
 ```
 
-## Project Structure
+# Project Structure
 
 ```
 shield-cpp/
 ├── include/
-│   └── shield_cpp.hpp          # Main library header
+|   └── shield/
+│       └── all.hpp          # Main library header
 ├── examples/
 │   └── main.cpp                # Usage examples
-├── tests/
-│   ├── test_retry.cpp          # Retry pattern tests
-│   ├── test_circuit_breaker.cpp # Circuit breaker tests
-│   ├── test_timeout.cpp        # Timeout pattern tests
-│   ├── test_bulkhead.cpp       # Bulkhead pattern tests
-│   ├── test_fallback.cpp       # Fallback pattern tests
-│   └── test_integration.cpp    # Integration tests
+├── src/ 
+|   └──tests/
+│       ├── test_retry.cpp          # Retry pattern tests
+│       ├── test_circuit_breaker.cpp # Circuit breaker tests
+│       ├── test_timeout.cpp        # Timeout pattern tests
+│       ├── test_bulkhead.cpp       # Bulkhead pattern tests
+│       ├── test_fallback.cpp       # Fallback pattern tests
+│       └── test_integration.cpp    # Integration tests
 ├── CMakeLists.txt              # Build configuration
 ├── vcpkg.json                  # Dependency manifest
 └── README.md                   # This file
 ```
 
-## Best Practices
+# Best Practices
 
 1. **Combine Patterns**: Use multiple patterns together for comprehensive resilience
 2. **Set Appropriate Timeouts**: Balance between giving operations time to complete and failing fast
@@ -238,7 +247,7 @@ shield-cpp/
 4. **Test Failure Scenarios**: Ensure fallback paths are tested and reliable
 5. **Configure Circuit Breakers**: Tune thresholds based on your service's error rates
 
-## Contributing
+# Contributing
 
 Contributions are welcome! Please ensure:
 
@@ -247,13 +256,13 @@ Contributions are welcome! Please ensure:
 - New features include comprehensive tests
 - Documentation is updated
 
-## License
+# License
 
 MIT License - see LICENSE file for details
 
-## Acknowledgments
+# Acknowledgments
 
-Built with industry-leading libraries:
+Built with the following libraries:
 - [Boost](https://www.boost.org/)
 - [Folly](https://github.com/facebook/folly)
 - [Prometheus C++](https://github.com/jupp0r/prometheus-cpp)

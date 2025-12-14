@@ -1,0 +1,49 @@
+#include <shield/circuit.hpp>
+
+#include <detail/circuit/circuitbreakermanager.hpp>
+
+namespace shield
+{
+circuit::circuit(const std::string& name, retry_policy retry, timeout_policy timeout, fallback_policy fallback)
+    : circuitBreaker(detail::circuit_breaker_manager::get_instance().get_or_create(name))
+{
+}
+
+circuit::circuit(std::shared_ptr<circuit_breaker> breaker)
+    : circuitBreaker(breaker)
+{
+}
+
+circuit& circuit::with_retry_policy(const retry_policy& policy)
+{
+    retryPolicy = policy;
+    return *this;
+}
+
+void circuit::on_success() const
+{
+    detail::circuit_breaker_manager::get_instance().on_success(circuitBreaker);
+}
+
+void circuit::on_failure() const
+{
+    detail::circuit_breaker_manager::get_instance().on_failure(circuitBreaker);
+}
+
+bool circuit::on_execute_function() const
+{
+    return detail::circuit_breaker_manager::get_instance().on_execute_function(circuitBreaker);
+}
+
+void circuit::handle_function_exit(bool success) const
+{
+    if (success)
+    {
+        on_success();
+    }
+    else
+    {
+        on_failure();
+    }
+}
+} // shield

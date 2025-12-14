@@ -1,0 +1,12 @@
+{
+  "name": "shield-cpp",
+  "version": "1.0.0",
+  "dependencies": [
+    "boost-asio",
+    "boost-system",
+    "catch2",
+    "folly",
+    "itlib",
+    "prometheus-cpp"
+  ]
+}
