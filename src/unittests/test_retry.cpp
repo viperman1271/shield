@@ -6,6 +6,24 @@
 
 using namespace shield;
 
+TEST_CASE("Retry policy - copy constructor", "[retry_policy]")
+{
+    const std::chrono::milliseconds FIXED_BACKOFF_DELAY = std::chrono::milliseconds(5);
+    shield::retry_policy policy = shield::retry_policy()
+        .with_max_attempts(4)
+        .with_fixed_backoff(FIXED_BACKOFF_DELAY)
+        .on_retry([&](const std::exception& e, int attempt, std::chrono::milliseconds delay)
+        {
+            std::cout << "on_retry" << std::endl;
+        });
+
+    REQUIRE(policy.get_max_attempts() == 4);
+    REQUIRE(policy.get_backoff_strategy() != nullptr);
+    REQUIRE(typeid(*policy.get_backoff_strategy()) == typeid(fixed_backoff));
+    REQUIRE(static_cast<const fixed_backoff*>(policy.get_backoff_strategy())->get_delay() == FIXED_BACKOFF_DELAY);
+    REQUIRE(policy.has_valid_retry_callback());
+}
+
 TEST_CASE("Retry policy - default configuration", "[retry_policy]")
 {
     retry_policy policy;
@@ -285,23 +303,24 @@ TEST_CASE("Retry policy - custom retry predicate", "[retry_policy][exceptions]")
 {
     int call_count = 0;
 
-    auto result = retry_policy(5)
-        .retry_if([](const std::exception& e, int attempt)
-        {
-            // Only retry on odd attempts
-            return attempt % 2 == 1;
-        })
-        .run([&call_count]()
-        {
-            call_count++;
-            if (call_count < 3)
+    REQUIRE_THROWS_AS(
+        shield::retry_policy(5)
+            .retry_if([](const std::exception& e, int attempt)
             {
-                throw std::runtime_error("Maybe retry");
-            }
-            return 100;
-        });
-
-    REQUIRE(result == 100);
+                // Only retry on odd attempts
+                return attempt % 2 == 1;
+            })
+            .run([&call_count]()
+            {
+                ++call_count;
+                if (call_count < 3)
+                {
+                    throw std::runtime_error("Maybe retry");
+                }
+                return 100;
+            }),
+        std::runtime_error
+    );
 }
 
 // ============================================================================
