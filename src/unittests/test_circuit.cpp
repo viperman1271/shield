@@ -95,7 +95,7 @@ TEST_CASE_METHOD(circuit_test_fixture, "Circuit - rejects calls when open", "[ci
     // Should reject immediately
     REQUIRE_THROWS_WITH(
         shield::circuit("test").run([]() { return 42; }),
-        "Circuit is OPEN"
+        "Circuit is OPEN and no fallback value could be obtained."
     );
 }
 
@@ -892,6 +892,6 @@ TEST_CASE_METHOD(circuit_test_fixture, "Circuit with retry policy - respects cir
         shield::circuit(cb)
         .with_retry_policy(policy)
         .run<std::runtime_error>([]() { return 42; }),
-        "Circuit is OPEN"
+        "Circuit is OPEN and no fallback value could be obtained."
     );
 }
