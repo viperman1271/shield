@@ -21,6 +21,8 @@
 
 #pragma once
 
+#include <shield/exceptions.hpp>
+
 #include <any>
 #include <functional>
 #include <memory>
@@ -36,7 +38,8 @@ enum class fallback_type
 {
     DEFAULT,        ///< Returns the default value for the type
     SPECIFIC_VALUE, ///< Returns a pre-configured specific value
-    CALLABLE        ///< Invokes a fallback function to compute and return a value
+    CALLABLE,       ///< Invokes a fallback function to compute and return a value
+    THROW,          ///< Will throw an exception rather than trying to provide a value
 };
 
 struct fallback_policy
@@ -75,8 +78,15 @@ public:
     }
 
     template<typename T>
-    std::optional<T> get_value() const noexcept 
+    requires (!std::is_void_v<T>)
+    std::optional<T> get_value() const 
     {
+        switch (fallbackType)
+        {
+        case fallback_type::THROW:
+            throw shield::fallback_exception();
+        }
+
         try 
         {
             switch (fallbackType) 
@@ -120,6 +130,34 @@ public:
         {
             // Catch all exceptions and return nullopt (noexcept guarantee)
             return std::nullopt;
+        }
+    }
+
+    template<typename T>
+    requires (std::is_void_v<T>)
+    void get_value() const 
+    {
+        switch (fallbackType) 
+        {
+        case fallback_type::DEFAULT:
+            return;
+
+        case fallback_type::SPECIFIC_VALUE:
+            return;
+
+        case fallback_type::CALLABLE:
+            // Invoke the callable and try to extract the result
+            if (fallbackCallable) 
+            {
+                fallbackCallable();
+            }
+            return;
+
+        case fallback_type::THROW:
+            throw shield::fallback_exception();
+
+        default:
+            return;
         }
     }
 
@@ -217,6 +255,8 @@ inline std::string to_string(fallback_type type)
         return "SPECIFIC_VALUE";
     case fallback_type::CALLABLE:
         return "CALLABLE";
+    case fallback_type::THROW:
+        return "THROW";
     default:
         return "UNKNOWN";
     }

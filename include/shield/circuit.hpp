@@ -109,16 +109,34 @@ private:
     template<class _Texcept = shield::unused_exception, bool _AlwaysRethrowExceptions = false, class Func>
     auto run_without_retry_policy(Func&& func) const
     {
+        using Ret = std::invoke_result_t<Func>;
+
         bool succeeded = false;
         itlib::sentry on_exit_function([&]() { handle_function_exit(succeeded); });
 
         // Check circuit breaker state and throw if open
         if (!on_execute_function())
         {
-            throw std::runtime_error("Circuit is OPEN");
+            if constexpr (!std::is_void_v<Ret>)
+            {
+                if (fallbackPolicy)
+                {
+                    std::optional<Ret> fallback_result = fallbackPolicy->get_value<Ret>();
+                    if (fallback_result)
+                    {
+                        // Successfully got fallback value
+                        return *fallback_result;
+                    }
+                }
+            }
+            else
+            {
+                return;
+            }
+
+            throw shield::open_circuit_exception();
         }
 
-        using Ret = std::invoke_result_t<Func>;
         if constexpr (std::is_void_v<Ret>)
         {
             try
@@ -133,6 +151,11 @@ private:
                 if constexpr (_AlwaysRethrowExceptions)
                 {
                     throw;
+                }
+
+                if (fallbackPolicy)
+                {
+                    fallbackPolicy->get_value<Ret>();
                 }
             }
         }
@@ -149,15 +172,29 @@ private:
                 std::cerr << ex.what() << std::endl;
                 succeeded = false;
 
-                if constexpr (_AlwaysRethrowExceptions || !std::is_default_constructible_v<Ret>)
+                if constexpr (_AlwaysRethrowExceptions)
                 {
                     throw;
                 }
-                else if constexpr (std::is_default_constructible_v<Ret>)
+                else if (fallbackPolicy)
                 {
-                    return Ret();
+                    std::optional<Ret> optionalVal = fallbackPolicy->get_value<Ret>();
+                    if (optionalVal.has_value())
+                    {
+                        return optionalVal.value();
+                    }
+                }
+                else if constexpr (std::is_default_constructible_v<Ret> && !std::is_void_v<Ret>)
+                {
+                    std::optional<Ret> optionalVal = fallback_policy::with_default().get_value<Ret>();
+                    if (optionalVal.has_value())
+                    {
+                        return optionalVal.value();
+                    }
                 }
             }
+
+            throw shield::cannot_obtain_value_exception();
         }
     }
 
@@ -169,5 +206,6 @@ private:
 private:
     std::shared_ptr<circuit_breaker> circuitBreaker;
     std::optional<retry_policy> retryPolicy;
+    std::optional<fallback_policy> fallbackPolicy;
 };
 } // shield

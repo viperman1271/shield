@@ -426,6 +426,11 @@ TEST_CASE("fallback_policy - to_string converts CALLABLE to string", "[fallback_
     REQUIRE(shield::to_string(shield::fallback_type::CALLABLE) == "CALLABLE");
 }
 
+TEST_CASE("fallback_policy - to_string converts THROW to string", "[fallback_policy][utility]")
+{
+    REQUIRE(shield::to_string(shield::fallback_type::THROW) == "THROW");
+}
+
 TEST_CASE("fallback_policy - circuit breaker integration uses fallback when circuit is open", "[fallback_policy][integration]")
 {
     shield::fallback_policy circuit_fallback = shield::fallback_policy::with_typed_callable([]()
