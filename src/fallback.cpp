@@ -2,11 +2,4 @@
 
 namespace shield
 {
-void fallback_policy::run()
-{
-    if (fallback)
-    {
-        fallback();
-    }
-}
 } // shield

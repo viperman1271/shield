@@ -406,34 +406,6 @@ TEST_CASE("fallback_policy - move policy into another policy", "[fallback_policy
     REQUIRE(*result == 42);
 }
 
-TEST_CASE("fallback_policy - execute returns std::any", "[fallback_policy][execute]")
-{
-    shield::fallback_policy policy = shield::fallback_policy::with_value(42);
-    std::any result = policy.execute();
-
-    REQUIRE(result.has_value());
-    REQUIRE(result.type() == typeid(int));
-    REQUIRE(std::any_cast<int>(result) == 42);
-}
-
-TEST_CASE("fallback_policy - operator() returns std::any", "[fallback_policy][execute]")
-{
-    shield::fallback_policy policy = shield::fallback_policy::with_value(std::string("test"));
-    std::any result = policy();
-
-    REQUIRE(result.has_value());
-    REQUIRE(result.type() == typeid(std::string));
-    REQUIRE(std::any_cast<std::string>(result) == "test");
-}
-
-TEST_CASE("fallback_policy - execute returns empty any for DEFAULT policy", "[fallback_policy][execute]")
-{
-    shield::fallback_policy policy = shield::fallback_policy::with_default();
-    std::any result = policy.execute();
-
-    REQUIRE_FALSE(result.has_value());
-}
-
 TEST_CASE("fallback_policy - throws on null callable", "[fallback_policy][validation]")
 {
     REQUIRE_THROWS_AS(shield::fallback_policy::with_callable(nullptr), std::invalid_argument);

@@ -134,29 +134,6 @@ public:
         return std::forward<T>(default_value);
     }
 
-    std::any execute() const 
-    {
-        switch (fallbackType) 
-        {
-        case fallback_type::DEFAULT:
-            return std::any{};  // Empty any for default
-
-        case fallback_type::SPECIFIC_VALUE:
-            return specificValue;
-
-        case fallback_type::CALLABLE:
-            return fallbackCallable();
-
-        default:
-            throw std::runtime_error("Unknown fallback type");
-        }
-    }
-
-    std::any operator()() const 
-    {
-        return execute();
-    }
-
     fallback_type get_type() const noexcept 
     {
         return fallbackType;
@@ -193,7 +170,7 @@ public:
             return specificValue.type() == typeid(T);
         }
         // For CALLABLE, we can't know without executing
-        return false;
+        return true;
     }
 
 private:
