@@ -77,6 +77,11 @@ public:
         });
     }
 
+    static fallback_policy with_throw()
+    {
+        return fallback_policy(fallback_type::THROW);
+    }
+
     template<typename T>
     requires (!std::is_void_v<T>)
     std::optional<T> get_value() const 
