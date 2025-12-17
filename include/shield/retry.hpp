@@ -259,10 +259,6 @@ public:
     retry_policy(retry_policy&&) = default;
     retry_policy& operator=(retry_policy&&) = default;
     
-    // ========================================================================
-    // BUILDER PATTERN METHODS
-    // ========================================================================
-    
     retry_policy& with_max_attempts(int attempts)
     {
         maxAttempts = attempts;
@@ -300,10 +296,6 @@ public:
         return *this;
     }
     
-    // ========================================================================
-    // EXCEPTION HANDLING CONFIGURATION
-    // ========================================================================
-    
     template<typename ExceptionType>
     retry_policy& retry_on()
     {
@@ -325,14 +317,10 @@ public:
         return *this;
     }
     
-    // ========================================================================
-    // EXECUTION
-    // ========================================================================
-    
     template<typename Func>
     auto run(Func&& func) const
     {
-        using return_type = decltype(func());
+        using Ret = std::invoke_result_t<Func>;
         
         for (int attempt = 1; attempt <= maxAttempts; ++attempt)
         {
@@ -340,11 +328,15 @@ public:
             {
                 return func();
             }
+            catch (const shield::open_circuit_exception&)
+            {
+                throw;
+            }
             catch (const std::exception& e)
             {
                 if (!should_retry(e, attempt))
                 {
-                    throw;
+                    return invoke_fallback(func);
                 }
                 
                 if (attempt < maxAttempts)
@@ -355,7 +347,7 @@ public:
                 }
                 else
                 {
-                    throw;
+                    return invoke_fallback(func);
                 }
             }
         }
@@ -364,23 +356,8 @@ public:
         throw std::runtime_error("Retry policy exhausted");
     }
     
-    // ========================================================================
-    // GETTERS
-    // ========================================================================
-    
-    int get_max_attempts() const
-    {
-        return maxAttempts;
-    }
-    
-    const backoff_strategy* get_backoff_strategy() const
-    {
-        return backoff.get();
-    }
-    
-    // ========================================================================
-    // CALLBACKS
-    // ========================================================================
+    int get_max_attempts() const { return maxAttempts; }
+    const backoff_strategy* get_backoff_strategy() const { return backoff.get(); }
     
     using retry_callback = std::function<void(const std::exception&, int, std::chrono::milliseconds)>;
     
@@ -391,6 +368,11 @@ public:
     }
 
     bool has_valid_retry_callback() const { return retryCallback.operator bool(); }
+
+    void set_fallback_policy(const fallback_policy& policy)
+    {
+        fallbackPolicy = policy;
+    }
     
 private:
     bool should_retry(const std::exception& e, int attempt) const
@@ -433,6 +415,30 @@ private:
             retryCallback(e, attempt, delay);
         }
     }
+
+    template<typename Func>
+    auto invoke_fallback(Func&& func) const
+    {
+        using Ret = std::invoke_result_t<Func>;
+
+        if constexpr (std::is_void_v<Ret>)
+        {
+            if (fallbackPolicy)
+            {
+                fallbackPolicy->get_value<Ret>();
+            }
+        }
+        else if (fallbackPolicy)
+        {
+            auto optionalVal = fallbackPolicy->get_value<Ret>();
+            if (optionalVal.has_value())
+            {
+                return optionalVal.value();
+            }
+        }
+
+        throw shield::cannot_obtain_value_exception();
+    }
     
 private:
     int maxAttempts;
@@ -441,11 +447,8 @@ private:
     retry_predicate retryPredicate;
     std::vector<size_t> retryableExceptions;
     retry_callback retryCallback;
+    std::optional<fallback_policy> fallbackPolicy;
 };
-
-// ============================================================================
-// CONVENIENCE FUNCTIONS
-// ============================================================================
 
 // Create a simple retry policy
 inline retry_policy make_retry_policy(int max_attempts)

@@ -22,10 +22,57 @@
 #pragma once
 
 #include <exception>
+#include <stdexcept>
+#include <string>
 
 namespace shield
 {
 class unused_exception : public std::exception
 {
+};
+
+class runtime_error : public std::runtime_error
+{
+public:
+    explicit runtime_error(const char* msg)
+        : std::runtime_error(msg)
+    {
+    }
+
+    explicit runtime_error()
+        : std::runtime_error("Unknown Shield runtime error")
+    {
+    }
+};
+
+class cannot_obtain_value_exception : public runtime_error
+{
+};
+
+class internal_exception : public runtime_error
+{
+public:
+    explicit internal_exception(const char* msg)
+        : runtime_error(msg)
+    {
+    }
+};
+
+class open_circuit_exception : public runtime_error
+{
+public:
+    open_circuit_exception()
+        : runtime_error("Circuit is OPEN and no fallback value could be obtained.")
+    {
+    }
+};
+
+class fallback_exception : public runtime_error
+{
+public:
+    fallback_exception()
+        : runtime_error("Fallback policy was configured to throw exceptions.")
+    {
+    }
 };
 }
