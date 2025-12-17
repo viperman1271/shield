@@ -33,6 +33,7 @@ source_group("include\\shield" FILES
 )
 
 source_group("" FILES
+    src/fallback.cpp
     src/resilience_patterns.cpp
 )
 
@@ -61,6 +62,7 @@ add_library(shield STATIC
     src/circuit/circuitbreaker.cpp
     src/detail/circuit/circuitbreakermanager.cpp
     src/detail/circuit/circuitbreakermanager.hpp
+    src/fallback.cpp
     src/resilience_patterns.cpp
 )
 

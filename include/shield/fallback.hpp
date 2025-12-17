@@ -48,10 +48,7 @@ public:
     using callable_type = std::function<std::any()>;
 
 public:
-    static fallback_policy with_default() 
-    {
-        return fallback_policy(fallback_type::DEFAULT);
-    }
+    static fallback_policy with_default();
 
     template<typename T>
     static fallback_policy with_value(T&& value) 
@@ -59,14 +56,7 @@ public:
         return fallback_policy(fallback_type::SPECIFIC_VALUE, std::make_any<std::decay_t<T>>(std::forward<T>(value)));
     }
 
-    static fallback_policy with_callable(callable_type fallback_function) 
-    {
-        if (!fallback_function) 
-        {
-            throw std::invalid_argument("fallback_fn cannot be null");
-        }
-        return fallback_policy(fallback_type::CALLABLE, std::any{}, std::move(fallback_function));
-    }
+    static fallback_policy with_callable(callable_type fallback_function);
 
     template<typename Callable>
     static fallback_policy with_typed_callable(Callable&& fallback_fn) 
@@ -77,10 +67,7 @@ public:
         });
     }
 
-    static fallback_policy with_throw()
-    {
-        return fallback_policy(fallback_type::THROW);
-    }
+    static fallback_policy with_throw();
 
     template<typename T>
     requires (!std::is_void_v<T>)
@@ -177,29 +164,11 @@ public:
         return std::forward<T>(default_value);
     }
 
-    fallback_type get_type() const noexcept 
-    {
-        return fallbackType;
-    }
+    fallback_type get_type() const noexcept { return fallbackType; }
+    bool has_specific_value() const noexcept { return fallbackType == fallback_type::SPECIFIC_VALUE && specificValue.has_value(); }
+    bool has_callable() const noexcept { return fallbackType == fallback_type::CALLABLE && static_cast<bool>(fallbackCallable); }
 
-    bool has_specific_value() const noexcept 
-    {
-        return fallbackType == fallback_type::SPECIFIC_VALUE && specificValue.has_value();
-    }
-
-    const std::type_info& stored_type() const noexcept 
-    {
-        if (fallbackType == fallback_type::SPECIFIC_VALUE && specificValue.has_value()) 
-        {
-            return specificValue.type();
-        }
-        return typeid(void);
-    }
-
-    bool has_callable() const noexcept 
-    {
-        return fallbackType == fallback_type::CALLABLE && static_cast<bool>(fallbackCallable);
-    }
+    const std::type_info& stored_type() const noexcept;
 
     template<typename T>
     bool can_cast_to() const noexcept 
@@ -225,18 +194,7 @@ private:
         validate();
     }
 
-    void validate() const
-    {
-        if (fallbackType == fallback_type::SPECIFIC_VALUE && !specificValue.has_value())
-        {
-            throw std::invalid_argument("specific_value must be provided for SPECIFIC_VALUE fallback type");
-        }
-
-        if (fallbackType == fallback_type::CALLABLE && !fallbackCallable)
-        {
-            throw std::invalid_argument("fallback_callable must be provided for CALLABLE fallback type");
-        }
-    }
+    void validate() const;
 
 private:
     fallback_type fallbackType;
@@ -250,22 +208,7 @@ private:
  * @param type The fallback_type to convert
  * @return String representation of the fallback type
  */
-inline std::string to_string(fallback_type type) 
-{
-    switch (type) 
-    {
-    case fallback_type::DEFAULT:
-        return "DEFAULT";
-    case fallback_type::SPECIFIC_VALUE:
-        return "SPECIFIC_VALUE";
-    case fallback_type::CALLABLE:
-        return "CALLABLE";
-    case fallback_type::THROW:
-        return "THROW";
-    default:
-        return "UNKNOWN";
-    }
-}
+std::string to_string(fallback_type type);
 
 static const fallback_policy default_fallback_policy = fallback_policy::with_default();
 }
