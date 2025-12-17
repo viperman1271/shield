@@ -39,10 +39,11 @@ namespace shield
 class circuit final
 {
 public:
-    circuit(const std::string& name, retry_policy retry = default_retry_policy, timeout_policy timeout = default_timeout_policy, fallback_policy fallback = default_fallback_policy);
+    circuit(const std::string& name, std::optional<retry_policy> retry = std::nullopt, std::optional<timeout_policy> timeout = std::nullopt, std::optional<fallback_policy> fallback = std::nullopt);
     circuit(std::shared_ptr<circuit_breaker> breaker);
 
     circuit& with_retry_policy(const retry_policy& policy);
+    circuit& with_fallback_policy(const fallback_policy& policy);
 
     template<class _Texcept = shield::unused_exception, class Func>
     auto run(Func&& func) const
