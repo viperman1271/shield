@@ -262,7 +262,7 @@ TEST_CASE("Retry policy - don't retry on non-matching exception", "[retry_policy
             throw std::logic_error("Not retryable");
             return 0;
         }),
-        std::logic_error
+        shield::cannot_obtain_value_exception
     );
 
     REQUIRE(call_count == 1); // No retries
